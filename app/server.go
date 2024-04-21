@@ -25,7 +25,11 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 
 func handle(con net.Conn) {
 	buffer := make([]byte, 1024)
-	con.Read(buffer)
+	_, err := con.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading buffer")
+		os.Exit(1)
+	}
 	req := bytes.Split(buffer, []byte(CLRF))
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
@@ -55,6 +59,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	// r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	handle(r)
 }
