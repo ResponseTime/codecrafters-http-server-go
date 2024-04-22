@@ -70,13 +70,13 @@ func handle(con net.Conn) {
 	req := bytes.Split(buffer, []byte(CLRF))
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-	parsedPath, parsedPathLen := strings.Split(line.Path, "/")[1], len(
+	parsedPath, parsedPathLen := strings.Split(line.Path, "/"), len(
 		strings.Split(line.Path, "/")[1],
 	)
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
-	// if line.Path == "/" || parsedPath == "" {
-	// 	resStatusLine.Status = "404"
-	// }
+	if parsedPath[0] != "echo" {
+		resStatusLine.Status = "404"
+	}
 
 	HEADERS := &Headers{header: make([]Header, 2)}
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
@@ -86,7 +86,7 @@ func handle(con net.Conn) {
 	res := &Response{
 		statusline: resStatusLine.to_string(),
 		headers:    HEADERS.to_string(),
-		body:       parsedPath + CLRF + CLRF,
+		body:       parsedPath[1] + CLRF + CLRF,
 	}
 	con.Write([]byte(res.statusline + res.headers + res.body))
 }
