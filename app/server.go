@@ -5,18 +5,55 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 )
 
 const (
 	CLRF      = "\r\n"
 	OK        = "HTTP/1.1 200 OK" + CLRF + CLRF
 	NOT_FOUND = "HTTP/1.1 404 Not Found" + CLRF + CLRF
+	EMPTY     = " "
 )
 
 type ReqStatusLine struct {
 	Method       string
 	Path         string
 	HTTP_version string
+}
+type ResponseStatusLine struct {
+	Version string
+	Status  string
+	Ok      string
+}
+type Response struct {
+	statusline string
+	headers    string
+	body       string
+}
+type Header struct {
+	Key string
+	val string
+}
+
+type Headers struct {
+	header []Header
+}
+
+func (h *Headers) to_string() string {
+	res := ""
+	for _, r := range h.header {
+		res += string(r.Key + ": " + r.val + CLRF + CLRF)
+	}
+	return res
+}
+
+func (h *Header) to_string() string {
+	return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
+}
+
+func (r *ResponseStatusLine) to_string() string {
+	return fmt.Sprintf("%s %s %s"+CLRF, r.Version, r.Status, r.Ok)
 }
 
 func extract_statusline(Method, Path, Version string) *ReqStatusLine {
@@ -33,12 +70,27 @@ func handle(con net.Conn) {
 	req := bytes.Split(buffer, []byte(CLRF))
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-
-	if line.Path == "/" {
-		con.Write([]byte(OK))
-	} else {
-		con.Write([]byte(NOT_FOUND))
+	parsedPath, parsedPathLen := strings.Split(line.Path, "/")[1], len(
+		strings.Split(line.Path, "/")[1],
+	)
+	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Ok: "OK"}
+	HEADERS := &Headers{header: make([]Header, 2)}
+	head1 := Header{Key: "Content-Type", val: "text/plain"}
+	head2 := Header{Key: "Content-Length", val: strconv.Itoa(parsedPathLen)}
+	HEADERS.header = append(HEADERS.header, head1)
+	HEADERS.header = append(HEADERS.header, head2)
+	res := &Response{
+		statusline: resStatusLine.to_string(),
+		headers:    HEADERS.to_string(),
+		body:       parsedPath + CLRF + CLRF,
 	}
+	con.Write([]byte(res.statusline + res.headers + res.body))
+	//	if line.Path == "/" {
+	//		con.Write([]byte(OK))
+	//	} else {
+	//
+	//		con.Write([]byte(NOT_FOUND))
+	//	}
 }
 
 func main() {
