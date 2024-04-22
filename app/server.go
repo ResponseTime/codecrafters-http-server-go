@@ -70,11 +70,11 @@ func handle(con net.Conn) {
 	req := bytes.Split(buffer, []byte(CLRF))
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-	parsedPath, parsedPathLen := strings.Split(line.Path, "/"), len(
-		strings.Split(line.Path, "/")[1],
-	)
+	parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1),
+		strings.SplitN(line.Path, "/", -1)[2:]
+
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
-	if parsedPath[0] != "echo" {
+	if strings.Trim(parsedPath[0], "") != "echo" {
 		// todo
 		resStatusLine.Status = "404"
 	}
@@ -84,13 +84,13 @@ func handle(con net.Conn) {
 
 	HEADERS := &Headers{header: make([]Header, 2)}
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
-	head2 := Header{Key: "Content-Length", val: strconv.Itoa(parsedPathLen)}
+	head2 := Header{Key: "Content-Length", val: strconv.Itoa(len(parsedPathLen[2:]))}
 	HEADERS.header = append(HEADERS.header, head1)
 	HEADERS.header = append(HEADERS.header, head2)
 	res := &Response{
 		statusline: resStatusLine.to_string(),
 		headers:    HEADERS.to_string(),
-		body:       parsedPath[1] + CLRF + CLRF,
+		body:       strings.Join(parsedPathLen, "/") + CLRF + CLRF,
 	}
 	con.Write([]byte(res.statusline + res.headers + res.body))
 }
