@@ -76,7 +76,8 @@ func handle(con net.Conn) {
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
 	if parsedPath[0] != "echo" {
 		resStatusLine.Status = "404"
-	} else if len(parsedPath[0]) == 0 {
+	}
+	if len(parsedPath[0]) == 0 {
 		resStatusLine.Status = "200"
 	}
 
