@@ -74,9 +74,9 @@ func handle(con net.Conn) {
 		strings.Split(line.Path, "/")[1],
 	)
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
-	if line.Path == "/" || parsedPath == "" {
-		resStatusLine.Status = "404"
-	}
+	// if line.Path == "/" || parsedPath == "" {
+	// 	resStatusLine.Status = "404"
+	// }
 
 	HEADERS := &Headers{header: make([]Header, 2)}
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
