@@ -73,7 +73,7 @@ func handle(con net.Conn) {
 	parsedPath, parsedPathLen := strings.Split(line.Path, "/")[1], len(
 		strings.Split(line.Path, "/")[1],
 	)
-	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Ok: "OK"}
+	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
 	HEADERS := &Headers{header: make([]Header, 2)}
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
 	head2 := Header{Key: "Content-Length", val: strconv.Itoa(parsedPathLen)}
