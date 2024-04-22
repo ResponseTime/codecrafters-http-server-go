@@ -84,7 +84,7 @@ func handle(con net.Conn) {
 
 	HEADERS := &Headers{header: make([]Header, 2)}
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
-	head2 := Header{Key: "Content-Length", val: strconv.Itoa(len(parsedPathLen[2:]))}
+	head2 := Header{Key: "Content-Length", val: strconv.Itoa(len(parsedPathLen))}
 	HEADERS.header = append(HEADERS.header, head1)
 	HEADERS.header = append(HEADERS.header, head2)
 	res := &Response{
