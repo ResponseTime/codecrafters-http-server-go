@@ -11,8 +11,8 @@ import (
 
 const (
 	CLRF      = "\r\n"
-	OK        = "HTTP/1.1 200 OK" + CLRF + CLRF
-	NOT_FOUND = "HTTP/1.1 404 Not Found" + CLRF + CLRF
+	OK        = "HTTP/1.1 200 OK" + CLRF
+	NOT_FOUND = "HTTP/1.1 404 Not Found" + CLRF
 	EMPTY     = " "
 )
 
@@ -73,7 +73,6 @@ func handle(con net.Conn) {
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
 	parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
 		strings.SplitN(line.Path, "/", -1)[2:]
-
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
 	if strings.Trim(parsedPath[0], "") != "echo" {
 		// todo
@@ -84,24 +83,22 @@ func handle(con net.Conn) {
 	}
 
 	HEADERS := &Headers{}
-	lenActual := 0
-	for _, i := range parsedPathLen {
-		lenActual += len(i)
-	}
+	lenActual := strings.Join(parsedPathLen, "/")
+	fmt.Println(lenActual, len(lenActual))
 	var head2 Header
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
 	head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
 	var res *Response
 
 	if resStatusLine.Status != "404" {
-		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual + 2)}
+		head2 = Header{Key: "Content-Length", val: strconv.Itoa(len(lenActual))}
 
 		HEADERS.header = append(HEADERS.header, head1)
 		HEADERS.header = append(HEADERS.header, head2)
 		res = &Response{
 			statusline: resStatusLine.to_string(),
 			headers:    HEADERS.to_string(),
-			body:       strings.Join(parsedPathLen, "/") + CLRF,
+			body:       strings.Join(parsedPathLen, "/"),
 		}
 	} else {
 
@@ -110,7 +107,7 @@ func handle(con net.Conn) {
 		res = &Response{
 			statusline: resStatusLine.to_string(),
 			headers:    HEADERS.to_string(),
-			body:       "" + CLRF,
+			body:       "",
 		}
 	}
 	fmt.Println(res.body, len(res.body))
@@ -134,7 +131,7 @@ func main() {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
-
+	defer r.Close()
 	// r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	handle(r)
 }
