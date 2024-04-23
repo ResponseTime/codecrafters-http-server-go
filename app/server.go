@@ -43,7 +43,7 @@ type Headers struct {
 func (h *Headers) to_string() string {
 	res := ""
 	for _, r := range h.header {
-		res += string(r.Key + ": " + r.val + CLRF + CLRF)
+		res += string(r.Key + ": " + r.val + CLRF)
 	}
 	return res
 }
