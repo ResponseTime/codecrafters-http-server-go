@@ -83,31 +83,35 @@ func handle(con net.Conn) {
 	}
 
 	HEADERS := &Headers{header: make([]Header, 2)}
-	head1 := Header{Key: "Content-Type", val: "text/plain"}
 	lenActual := 0
 	for _, i := range parsedPathLen {
 		lenActual += len(i)
 	}
 	var head2 Header
-
+	head1 := Header{Key: "Content-Type", val: "text/plain"}
 	head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
 	var res *Response
 	if resStatusLine.Status != "404" {
 		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+
+		HEADERS.header = append(HEADERS.header, head1)
+		HEADERS.header = append(HEADERS.header, head2)
 		res = &Response{
 			statusline: resStatusLine.to_string(),
 			headers:    HEADERS.to_string(),
 			body:       strings.Join(parsedPathLen, "/") + CLRF + CLRF,
 		}
+	} else {
+
+		HEADERS.header = append(HEADERS.header, head1)
+		HEADERS.header = append(HEADERS.header, head2)
+		res = &Response{
+			statusline: resStatusLine.to_string(),
+			headers:    HEADERS.to_string(),
+			body:       "" + CLRF + CLRF,
+		}
 	}
 
-	HEADERS.header = append(HEADERS.header, head1)
-	HEADERS.header = append(HEADERS.header, head2)
-	res = &Response{
-		statusline: resStatusLine.to_string(),
-		headers:    HEADERS.to_string(),
-		body:       "" + CLRF + CLRF,
-	}
 	con.Write([]byte(res.statusline + res.headers + res.body))
 }
 
