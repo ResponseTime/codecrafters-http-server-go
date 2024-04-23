@@ -49,7 +49,7 @@ func (h *Headers) to_string() string {
 }
 
 func (h *Header) to_string() string {
-	return fmt.Sprintf("%s: %s"+"\n", h.Key, h.val)
+	return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
 }
 
 func (r *ResponseStatusLine) to_string() string {
@@ -99,7 +99,7 @@ func handle(con net.Conn) {
 		res = &Response{
 			statusline: resStatusLine.to_string(),
 			headers:    HEADERS.to_string(),
-			body:       strings.Join(parsedPathLen, "/") + CLRF + CLRF,
+			body:       strings.Join(parsedPathLen, "/") + CLRF,
 		}
 	} else {
 
@@ -108,7 +108,7 @@ func handle(con net.Conn) {
 		res = &Response{
 			statusline: resStatusLine.to_string(),
 			headers:    HEADERS.to_string(),
-			body:       "" + CLRF + CLRF,
+			body:       "" + CLRF,
 		}
 	}
 
