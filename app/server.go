@@ -49,7 +49,10 @@ func (h *Headers) to_string() string {
 }
 
 func (h *Header) to_string() string {
-	return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
+	if len(h.Key) != 0 && len(h.val) != 0 {
+		return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
+	}
+	return ""
 }
 
 func (r *ResponseStatusLine) to_string() string {
@@ -82,7 +85,7 @@ func handle(con net.Conn) {
 		resStatusLine.Status = "200"
 	}
 
-	HEADERS := &Headers{header: make([]Header, 2)}
+	HEADERS := &Headers{}
 	lenActual := 0
 	for _, i := range parsedPathLen {
 		lenActual += len(i)
@@ -91,6 +94,7 @@ func handle(con net.Conn) {
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
 	head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
 	var res *Response
+
 	if resStatusLine.Status != "404" {
 		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
 
@@ -111,7 +115,6 @@ func handle(con net.Conn) {
 			body:       "" + CLRF,
 		}
 	}
-
 	con.Write([]byte(res.statusline + res.headers + res.body))
 }
 
