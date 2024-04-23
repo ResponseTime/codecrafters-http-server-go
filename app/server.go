@@ -43,13 +43,13 @@ type Headers struct {
 func (h *Headers) to_string() string {
 	res := ""
 	for _, r := range h.header {
-		res += string(r.Key + ": " + r.val + CLRF)
+		res += string(r.Key + ": " + r.val + CLRF + CLRF)
 	}
 	return res
 }
 
 func (h *Header) to_string() string {
-	return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
+	return fmt.Sprintf("%s: %s"+"\n", h.Key, h.val)
 }
 
 func (r *ResponseStatusLine) to_string() string {
