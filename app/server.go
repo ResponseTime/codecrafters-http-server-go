@@ -70,7 +70,7 @@ func handle(con net.Conn) {
 	req := bytes.Split(buffer, []byte(CLRF))
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-	parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1),
+	parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
 		strings.SplitN(line.Path, "/", -1)[2:]
 
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
@@ -84,13 +84,29 @@ func handle(con net.Conn) {
 
 	HEADERS := &Headers{header: make([]Header, 2)}
 	head1 := Header{Key: "Content-Type", val: "text/plain"}
-	head2 := Header{Key: "Content-Length", val: strconv.Itoa(len(parsedPathLen))}
+	lenActual := 0
+	for _, i := range parsedPathLen {
+		lenActual += len(i)
+	}
+	var head2 Header
+
+	head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
+	var res *Response
+	if resStatusLine.Status != "404" {
+		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+		res = &Response{
+			statusline: resStatusLine.to_string(),
+			headers:    HEADERS.to_string(),
+			body:       strings.Join(parsedPathLen, "/") + CLRF + CLRF,
+		}
+	}
+
 	HEADERS.header = append(HEADERS.header, head1)
 	HEADERS.header = append(HEADERS.header, head2)
-	res := &Response{
+	res = &Response{
 		statusline: resStatusLine.to_string(),
 		headers:    HEADERS.to_string(),
-		body:       strings.Join(parsedPathLen, "/") + CLRF + CLRF,
+		body:       "" + CLRF + CLRF,
 	}
 	con.Write([]byte(res.statusline + res.headers + res.body))
 }
