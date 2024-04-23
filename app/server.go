@@ -43,16 +43,14 @@ type Headers struct {
 func (h *Headers) to_string() string {
 	res := ""
 	for _, r := range h.header {
-		res += string(r.Key + ": " + r.val + CLRF + CLRF)
+		res += string(r.Key + ": " + r.val + CLRF)
 	}
+	res += CLRF
 	return res
 }
 
 func (h *Header) to_string() string {
-	if len(h.Key) != 0 && len(h.val) != 0 {
-		return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
-	}
-	return ""
+	return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
 }
 
 func (r *ResponseStatusLine) to_string() string {
@@ -96,7 +94,7 @@ func handle(con net.Conn) {
 	var res *Response
 
 	if resStatusLine.Status != "404" {
-		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual + 2)}
 
 		HEADERS.header = append(HEADERS.header, head1)
 		HEADERS.header = append(HEADERS.header, head2)
@@ -115,6 +113,7 @@ func handle(con net.Conn) {
 			body:       "" + CLRF,
 		}
 	}
+	fmt.Println(res.body, len(res.body))
 	con.Write([]byte(res.statusline + res.headers + res.body))
 }
 
