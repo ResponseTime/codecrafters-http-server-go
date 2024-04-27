@@ -111,7 +111,7 @@ func handle(con net.Conn) {
 			body:       "",
 		}
 	} else {
-		lenActual := len(reqHeaders.header[1].val)
+		lenActual := len(strings.Trim(reqHeaders.header[1].val, " "))
 		// fmt.Println(lenActual)
 		if strings.Trim(parsedPath[0], "") == "echo" {
 			lenActual = len(strings.Join(parsedPathLen, "/"))
@@ -123,15 +123,16 @@ func handle(con net.Conn) {
 				headers:    HEADERS.to_string(),
 				body:       strings.Join(parsedPathLen, "/"),
 			}
-			// fmt.Println(strings.Join(parsedPathLen, "/"))
+			fmt.Println(strings.Join(parsedPathLen, "/"))
 		} else {
+			// fmt.Println(reqHeaders.header[1], len(reqHeaders.header[1].val))
 			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
 			HEADERS.header = append(HEADERS.header, head1)
 			HEADERS.header = append(HEADERS.header, head2)
 			res = &Response{
 				statusline: resStatusLine.to_string(),
 				headers:    HEADERS.to_string(),
-				body:       reqHeaders.header[1].val,
+				body:       strings.Trim(reqHeaders.header[1].val, " "),
 			}
 		}
 	}
