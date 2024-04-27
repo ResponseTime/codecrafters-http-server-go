@@ -11,8 +11,8 @@ import (
 
 const (
 	CLRF      = "\r\n"
-	OK        = "HTTP/1.1 200 OK" + CLRF
-	NOT_FOUND = "HTTP/1.1 404 Not Found" + CLRF
+	OK        = "HTTP/1.1 200 OK" + CLRF + CLRF
+	NOT_FOUND = "HTTP/1.1 404 Not Found" + CLRF + CLRF
 	EMPTY     = " "
 )
 
@@ -62,87 +62,131 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 }
 
 func handle(con net.Conn) {
-	buffer := make([]byte, 32678)
+	buffer := make([]byte, 1024)
 	_, err := con.Read(buffer)
 	if err != nil {
 		fmt.Println("Error reading buffer")
 		os.Exit(1)
 	}
 	req := bytes.Split(buffer, []byte(CLRF))
-	reqHeaders := &Headers{}
-	if req[1] != nil {
-		for _, i := range req[1:] {
-			if len(string(i)) == 0 {
-				break
-			}
-			splits := strings.Split(string(i), ":")
-			reqHeaders.header = append(
-				reqHeaders.header,
-				Header{Key: strings.Trim(splits[0], ""), val: strings.Trim(splits[1], "")},
-			)
-		}
-	}
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-	parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
-		strings.SplitN(line.Path, "/", -1)[2:]
+	// fmt.Println(line.Path, line.Path == "/")
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
-	if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) ||
-		strings.Trim(parsedPath[0], "") == "echo" {
-		// todo
-		// fmt.Println(string(req[0]))
-		resStatusLine.Status = "200"
-	} else {
-		resStatusLine.Status = "404"
+	if strings.Trim(line.Path, " ") == "/" {
+		con.Write([]byte(OK))
+		con.Close()
 	}
-
-	HEADERS := &Headers{}
-	// lenActual := strings.Join(parsedPathLen, "/")
-
-	var head2 Header
-	head1 := Header{Key: "Content-Type", val: "text/plain"}
-	head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
-	var res *Response
-
-	if resStatusLine.Status == "404" {
-		HEADERS.header = append(HEADERS.header, head1)
-		HEADERS.header = append(HEADERS.header, head2)
-		res = &Response{
-			statusline: resStatusLine.to_string(),
-			headers:    HEADERS.to_string(),
-			body:       "",
-		}
-	} else {
-		var lenActual int
+	if line.Path == "/user-agent" {
+		reqHeaders := &Headers{}
 		if req[1] != nil {
-			lenActual = len(strings.Trim(reqHeaders.header[1].val, " "))
-		}
-		// fmt.Println(lenActual)
-		if strings.Trim(parsedPath[0], "") == "echo" {
-			lenActual = len(strings.Join(parsedPathLen, "/"))
-			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
-			HEADERS.header = append(HEADERS.header, head1)
-			HEADERS.header = append(HEADERS.header, head2)
-			res = &Response{
-				statusline: resStatusLine.to_string(),
-				headers:    HEADERS.to_string(),
-				body:       strings.Join(parsedPathLen, "/"),
+			for _, i := range req[1:] {
+				if len(string(i)) == 0 {
+					break
+				}
+				splits := strings.Split(string(i), ":")
+				reqHeaders.header = append(
+					reqHeaders.header,
+					Header{Key: strings.Trim(splits[0], ""), val: strings.Trim(splits[1], "")},
+				)
 			}
-			fmt.Println(strings.Join(parsedPathLen, "/"))
-		} else {
-			// fmt.Println(reqHeaders.header[1], len(reqHeaders.header[1].val))
+
+			resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
+			headers := &Headers{}
+			var head2 Header
+			head1 := Header{Key: "Content-Type", val: "text/plain"}
+			lenActual := len(strings.Trim(reqHeaders.header[1].val, " "))
 			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
-			HEADERS.header = append(HEADERS.header, head1)
-			HEADERS.header = append(HEADERS.header, head2)
-			res = &Response{
+			headers.header = append(headers.header, head1)
+			headers.header = append(headers.header, head2)
+			res := &Response{
 				statusline: resStatusLine.to_string(),
-				headers:    HEADERS.to_string(),
+				headers:    headers.to_string(),
 				body:       strings.Trim(reqHeaders.header[1].val, " "),
 			}
+			con.Write([]byte(res.statusline + res.headers + res.body))
+
+			con.Close()
 		}
+	} else if strings.Contains(line.Path, "/echo") {
+		_, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
+			strings.SplitN(line.Path, "/", -1)[2:]
+		HEADERS := &Headers{}
+		var head2 Header
+		head1 := Header{Key: "Content-Type", val: "text/plain"}
+		lenActual := len(strings.Join(parsedPathLen, "/"))
+		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+		HEADERS.header = append(HEADERS.header, head1)
+		HEADERS.header = append(HEADERS.header, head2)
+		res := &Response{
+			statusline: resStatusLine.to_string(),
+			headers:    HEADERS.to_string(),
+			body:       strings.Join(parsedPathLen, "/"),
+		}
+		con.Write([]byte(res.statusline + res.headers + res.body))
+
+		con.Close()
+	} else {
+		con.Write([]byte(NOT_FOUND))
+
+		con.Close()
 	}
-	// fmt.Println(res.body, len(res.body))
-	con.Write([]byte(res.statusline + res.headers + res.body))
+	// if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) ||
+	// 	strings.Trim(parsedPath[0], "") == "echo" {
+	// 	// todo
+	// 	// fmt.Println(string(req[0]))
+	// 	resStatusLine.Status = "200"
+	// } else {
+	// 	resStatusLine.Status = "404"
+	// }
+	//
+	// HEADERS := &Headers{}
+	// // lenActual := strings.Join(parsedPathLen, "/")
+	//
+	// var head2 Header
+	// head1 := Header{Key: "Content-Type", val: "text/plain"}
+	// head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
+	// var res *Response
+	//
+	// if resStatusLine.Status == "404" {
+	// 	HEADERS.header = append(HEADERS.header, head1)
+	// 	HEADERS.header = append(HEADERS.header, head2)
+	// 	res = &Response{
+	// 		statusline: resStatusLine.to_string(),
+	// 		headers:    HEADERS.to_string(),
+	// 		body:       "",
+	// 	}
+	// } else {
+	// 	var lenActual int
+	// 	if req[1] != nil {
+	// 		lenActual = len(strings.Trim(reqHeaders.header[1].val, " "))
+	// 	}
+	// 	// fmt.Println(lenActual)
+	// 	if strings.Trim(parsedPath[0], "") == "echo" {
+	// 		lenActual = len(strings.Join(parsedPathLen, "/"))
+	// 		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+	// 		HEADERS.header = append(HEADERS.header, head1)
+	// 		HEADERS.header = append(HEADERS.header, head2)
+	// 		res = &Response{
+	// 			statusline: resStatusLine.to_string(),
+	// 			headers:    HEADERS.to_string(),
+	// 			body:       strings.Join(parsedPathLen, "/"),
+	// 		}
+	// 		fmt.Println(strings.Join(parsedPathLen, "/"))
+	// 	} else {
+	// 		// fmt.Println(reqHeaders.header[1], len(reqHeaders.header[1].val))
+	// 		head2 = header{key: "content-length", val: strconv.itoa(lenactual)}
+	// 		headers.header = append(headers.header, head1)
+	// 		headers.header = append(headers.header, head2)
+	// 		res = &response{
+	// 			statusline: resstatusline.to_string(),
+	// 			headers:    headers.to_string(),
+	// 			body:       strings.trim(reqheaders.header[1].val, " "),
+	// 		}
+	// 	}
+	// }
+	// // fmt.Println(res.body, len(res.body))
+	// con.Write([]byte(res.statusline + res.headers + res.body))
 }
 
 func main() {
