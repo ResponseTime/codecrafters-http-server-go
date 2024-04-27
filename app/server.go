@@ -160,7 +160,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		defer r.Close()
 		go handle(r)
 	}
 	// r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
