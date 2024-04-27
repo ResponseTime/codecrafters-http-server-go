@@ -107,6 +107,7 @@ func handle(con net.Conn) {
 	var res *Response
 
 	if resStatusLine.Status == "404" {
+		echo = false
 		HEADERS.header = append(HEADERS.header, head1)
 		HEADERS.header = append(HEADERS.header, head2)
 		res = &Response{
@@ -126,6 +127,7 @@ func handle(con net.Conn) {
 			body:       strings.TrimPrefix(string(statusL[1]), "/echo/"),
 		}
 	} else {
+		echo = false
 		lenActual := len(reqHeaders.header[1].val)
 
 		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
