@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 const (
@@ -62,10 +61,7 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 	return &ReqStatusLine{Method: Method, Path: Path, HTTP_version: Version}
 }
 
-func handle(con net.Conn, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer con.Close()
-	wg.Add(1)
+func handle(con net.Conn) {
 	buffer := make([]byte, 1024)
 	_, err := con.Read(buffer)
 	if err != nil {
@@ -147,7 +143,7 @@ func handle(con net.Conn, wg *sync.WaitGroup) {
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 	// Uncomment this block to pass the first stage
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
@@ -155,14 +151,18 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
+	defer l.Close()
+	for {
 
-	r, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
+		r, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+
+		defer r.Close()
+		go handle(r)
 	}
-	defer r.Close()
 	// r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	go handle(r, &wg)
-	wg.Wait()
+	// wg.Wait()
 }
