@@ -62,6 +62,7 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 }
 
 func handle(con net.Conn) {
+	defer con.Close()
 	buffer := make([]byte, 1024)
 	_, err := con.Read(buffer)
 	if err != nil {
