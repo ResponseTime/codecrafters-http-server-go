@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -61,8 +62,10 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 	return &ReqStatusLine{Method: Method, Path: Path, HTTP_version: Version}
 }
 
-func handle(con net.Conn) {
+func handle(con net.Conn, wg *sync.WaitGroup) {
+	defer wg.Done()
 	defer con.Close()
+	wg.Add(1)
 	buffer := make([]byte, 1024)
 	_, err := con.Read(buffer)
 	if err != nil {
@@ -144,7 +147,7 @@ func handle(con net.Conn) {
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
-
+	var wg sync.WaitGroup
 	// Uncomment this block to pass the first stage
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
@@ -160,5 +163,6 @@ func main() {
 	}
 	defer r.Close()
 	// r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	go handle(r)
+	go handle(r, &wg)
+	wg.Wait()
 }
