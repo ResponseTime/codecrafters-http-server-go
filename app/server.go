@@ -62,7 +62,6 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 }
 
 func handle(con net.Conn) {
-	defer con.Close()
 	buffer := make([]byte, 32678)
 	_, err := con.Read(buffer)
 	if err != nil {
@@ -114,7 +113,7 @@ func handle(con net.Conn) {
 			body:       "",
 		}
 	} else {
-		lenActual := len(strings.TrimRight(reqHeaders.header[1].val, " "))
+		lenActual := len(strings.Trim(reqHeaders.header[1].val, " "))
 		// fmt.Println(lenActual)
 		if strings.Trim(parsedPath[0], "") == "echo" {
 			lenActual = len(strings.Join(parsedPathLen, "/"))
@@ -135,7 +134,7 @@ func handle(con net.Conn) {
 			res = &Response{
 				statusline: resStatusLine.to_string(),
 				headers:    HEADERS.to_string(),
-				body:       strings.TrimRight(reqHeaders.header[1].val, " "),
+				body:       strings.Trim(reqHeaders.header[1].val, " "),
 			}
 		}
 	}
