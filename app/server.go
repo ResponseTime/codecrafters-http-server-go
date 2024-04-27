@@ -62,7 +62,8 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 }
 
 func handle(con net.Conn) {
-	buffer := make([]byte, 32676)
+	defer con.Close()
+	buffer := make([]byte, 32678)
 	_, err := con.Read(buffer)
 	if err != nil {
 		fmt.Println("Error reading buffer")
@@ -70,15 +71,17 @@ func handle(con net.Conn) {
 	}
 	req := bytes.Split(buffer, []byte(CLRF))
 	reqHeaders := &Headers{}
-	for _, i := range req[1:] {
-		if len(string(i)) == 0 {
-			break
+	if req[1] != nil {
+		for _, i := range req[1:] {
+			if len(string(i)) == 0 {
+				break
+			}
+			splits := strings.Split(string(i), ":")
+			reqHeaders.header = append(
+				reqHeaders.header,
+				Header{Key: strings.Trim(splits[0], ""), val: strings.Trim(splits[1], "")},
+			)
 		}
-		splits := strings.Split(string(i), ":")
-		reqHeaders.header = append(
-			reqHeaders.header,
-			Header{Key: strings.Trim(splits[0], ""), val: strings.Trim(splits[1], "")},
-		)
 	}
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
@@ -111,7 +114,7 @@ func handle(con net.Conn) {
 			body:       "",
 		}
 	} else {
-		lenActual := len(strings.Trim(reqHeaders.header[1].val, " "))
+		lenActual := len(strings.TrimRight(reqHeaders.header[1].val, " "))
 		// fmt.Println(lenActual)
 		if strings.Trim(parsedPath[0], "") == "echo" {
 			lenActual = len(strings.Join(parsedPathLen, "/"))
@@ -132,7 +135,7 @@ func handle(con net.Conn) {
 			res = &Response{
 				statusline: resStatusLine.to_string(),
 				headers:    HEADERS.to_string(),
-				body:       strings.Trim(reqHeaders.header[1].val, " "),
+				body:       strings.TrimRight(reqHeaders.header[1].val, " "),
 			}
 		}
 	}
