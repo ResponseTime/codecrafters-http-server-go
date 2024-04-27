@@ -88,7 +88,7 @@ func handle(con net.Conn) {
 	if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) ||
 		strings.Trim(parsedPath[0], "") == "echo" {
 		// todo
-		fmt.Println(string(req[0]))
+		// fmt.Println(string(req[0]))
 		resStatusLine.Status = "200"
 	} else {
 		resStatusLine.Status = "404"
@@ -112,9 +112,9 @@ func handle(con net.Conn) {
 		}
 	} else {
 		lenActual := len(reqHeaders.header[1].val)
-		if lenActual == 0 {
+		// fmt.Println(lenActual)
+		if strings.Trim(parsedPath[0], "") == "echo" {
 			lenActual = len(strings.Join(parsedPathLen, "/"))
-
 			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
 			HEADERS.header = append(HEADERS.header, head1)
 			HEADERS.header = append(HEADERS.header, head2)
@@ -123,6 +123,7 @@ func handle(con net.Conn) {
 				headers:    HEADERS.to_string(),
 				body:       strings.Join(parsedPathLen, "/"),
 			}
+			// fmt.Println(strings.Join(parsedPathLen, "/"))
 		} else {
 			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
 			HEADERS.header = append(HEADERS.header, head1)
