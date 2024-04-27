@@ -113,7 +113,10 @@ func handle(con net.Conn) {
 			body:       "",
 		}
 	} else {
-		lenActual := len(strings.Trim(reqHeaders.header[1].val, " "))
+		var lenActual int
+		if req[1] != nil {
+			lenActual = len(strings.Trim(reqHeaders.header[1].val, " "))
+		}
 		// fmt.Println(lenActual)
 		if strings.Trim(parsedPath[0], "") == "echo" {
 			lenActual = len(strings.Join(parsedPathLen, "/"))
@@ -154,15 +157,11 @@ func main() {
 		os.Exit(1)
 	}
 	for {
-
 		r, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-
 		go handle(r)
 	}
-	// r.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	// wg.Wait()
 }
