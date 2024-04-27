@@ -85,8 +85,10 @@ func handle(con net.Conn) {
 	// parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
 	// 	strings.SplitN(line.Path, "/", -1)[2:]
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
-	if bytes.Contains(req[0], []byte("/user-agent")) {
+	if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) {
 		// todo
+
+		fmt.Println(string(req[0]))
 		resStatusLine.Status = "200"
 	} else {
 		resStatusLine.Status = "404"
@@ -100,7 +102,7 @@ func handle(con net.Conn) {
 	head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
 	var res *Response
 
-	if resStatusLine.Status != "404" {
+	if resStatusLine.Status == "404" {
 		HEADERS.header = append(HEADERS.header, head1)
 		HEADERS.header = append(HEADERS.header, head2)
 		res = &Response{
