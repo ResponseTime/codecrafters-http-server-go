@@ -62,7 +62,7 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 }
 
 func handle(con net.Conn) {
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 32676)
 	_, err := con.Read(buffer)
 	if err != nil {
 		fmt.Println("Error reading buffer")
@@ -151,7 +151,6 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
-	defer l.Close()
 	for {
 
 		r, err := l.Accept()
