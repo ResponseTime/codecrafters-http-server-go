@@ -80,16 +80,20 @@ func handle(con net.Conn) {
 			Header{Key: strings.Trim(splits[0], ""), val: strings.Trim(splits[1], "")},
 		)
 	}
-	// statusL := bytes.Split(req[0], []byte(" "))
+	statusL := bytes.Split(req[0], []byte(" "))
 	// line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
 	// parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
 	// 	strings.SplitN(line.Path, "/", -1)[2:]
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
+	echo := false
 	if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) {
 		// todo
 
 		fmt.Println(string(req[0]))
 		resStatusLine.Status = "200"
+	}
+	if bytes.Contains(req[0], []byte("/echo")) {
+		echo = true
 	} else {
 		resStatusLine.Status = "404"
 	}
@@ -109,6 +113,17 @@ func handle(con net.Conn) {
 			statusline: resStatusLine.to_string(),
 			headers:    HEADERS.to_string(),
 			body:       "",
+		}
+	}
+	if echo {
+		lenActual := len(strings.TrimPrefix(string(statusL[1]), "/echo/"))
+		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+		HEADERS.header = append(HEADERS.header, head1)
+		HEADERS.header = append(HEADERS.header, head2)
+		res = &Response{
+			statusline: resStatusLine.to_string(),
+			headers:    HEADERS.to_string(),
+			body:       strings.TrimPrefix(string(statusL[1]), "/echo/"),
 		}
 	} else {
 		lenActual := len(reqHeaders.header[1].val)
