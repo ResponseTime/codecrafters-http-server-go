@@ -81,19 +81,15 @@ func handle(con net.Conn) {
 		)
 	}
 	statusL := bytes.Split(req[0], []byte(" "))
-	// line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-	// parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
-	// 	strings.SplitN(line.Path, "/", -1)[2:]
+	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
+	parsedPath, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
+		strings.SplitN(line.Path, "/", -1)[2:]
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
-	echo := false
-	if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) {
+	if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) ||
+		strings.Trim(parsedPath[0], "") == "echo" {
 		// todo
-
 		fmt.Println(string(req[0]))
 		resStatusLine.Status = "200"
-	}
-	if bytes.Contains(req[0], []byte("/echo")) {
-		echo = true
 	} else {
 		resStatusLine.Status = "404"
 	}
@@ -107,7 +103,6 @@ func handle(con net.Conn) {
 	var res *Response
 
 	if resStatusLine.Status == "404" {
-		echo = false
 		HEADERS.header = append(HEADERS.header, head1)
 		HEADERS.header = append(HEADERS.header, head2)
 		res = &Response{
@@ -115,28 +110,28 @@ func handle(con net.Conn) {
 			headers:    HEADERS.to_string(),
 			body:       "",
 		}
-	}
-	if echo {
-		lenActual := len(strings.TrimPrefix(string(statusL[1]), "/echo/"))
-		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
-		HEADERS.header = append(HEADERS.header, head1)
-		HEADERS.header = append(HEADERS.header, head2)
-		res = &Response{
-			statusline: resStatusLine.to_string(),
-			headers:    HEADERS.to_string(),
-			body:       strings.TrimPrefix(string(statusL[1]), "/echo/"),
-		}
 	} else {
-		echo = false
 		lenActual := len(reqHeaders.header[1].val)
+		if lenActual == 0 {
+			lenActual = len(strings.Join(parsedPathLen, "/"))
 
-		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
-		HEADERS.header = append(HEADERS.header, head1)
-		HEADERS.header = append(HEADERS.header, head2)
-		res = &Response{
-			statusline: resStatusLine.to_string(),
-			headers:    HEADERS.to_string(),
-			body:       reqHeaders.header[1].val,
+			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+			HEADERS.header = append(HEADERS.header, head1)
+			HEADERS.header = append(HEADERS.header, head2)
+			res = &Response{
+				statusline: resStatusLine.to_string(),
+				headers:    HEADERS.to_string(),
+				body:       strings.Join(parsedPathLen, "/"),
+			}
+		} else {
+			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+			HEADERS.header = append(HEADERS.header, head1)
+			HEADERS.header = append(HEADERS.header, head2)
+			res = &Response{
+				statusline: resStatusLine.to_string(),
+				headers:    HEADERS.to_string(),
+				body:       reqHeaders.header[1].val,
+			}
 		}
 	}
 	// fmt.Println(res.body, len(res.body))
