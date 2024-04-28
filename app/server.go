@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"flag"
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -15,6 +18,8 @@ const (
 	NOT_FOUND = "HTTP/1.1 404 Not Found" + CLRF + CLRF
 	EMPTY     = " "
 )
+
+var Dir string
 
 type ReqStatusLine struct {
 	Method       string
@@ -62,6 +67,7 @@ func extract_statusline(Method, Path, Version string) *ReqStatusLine {
 }
 
 func handle(con net.Conn) {
+	defer con.Close()
 	buffer := make([]byte, 1024)
 	_, err := con.Read(buffer)
 	if err != nil {
@@ -75,9 +81,8 @@ func handle(con net.Conn) {
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
 	if strings.Trim(line.Path, " ") == "/" {
 		con.Write([]byte(OK))
-		con.Close()
-	}
-	if line.Path == "/user-agent" {
+		return
+	} else if line.Path == "/user-agent" {
 		reqHeaders := &Headers{}
 		if req[1] != nil {
 			for _, i := range req[1:] {
@@ -105,8 +110,8 @@ func handle(con net.Conn) {
 				body:       strings.Trim(reqHeaders.header[1].val, " "),
 			}
 			con.Write([]byte(res.statusline + res.headers + res.body))
+			return
 
-			con.Close()
 		}
 	} else if strings.Contains(line.Path, "/echo") {
 		_, parsedPathLen := strings.SplitN(line.Path, "/", -1)[1:],
@@ -124,12 +129,35 @@ func handle(con net.Conn) {
 			body:       strings.Join(parsedPathLen, "/"),
 		}
 		con.Write([]byte(res.statusline + res.headers + res.body))
+		return
 
-		con.Close()
+	} else if strings.Contains(line.Path, "/files") {
+		filename := strings.Split(line.Path, "/")[2]
+		pathToFile := filepath.Join(Dir, filename)
+		_, err := os.Open(pathToFile)
+		if errors.Is(err, os.ErrNotExist) {
+			con.Write([]byte(NOT_FOUND))
+			return
+		}
+
+		HEADERS := &Headers{}
+		var head2 Header
+		head1 := Header{Key: "Content-Type", val: "application/octet-stream"}
+		content, _ := os.ReadFile(pathToFile)
+		lenActual := len(string(content))
+		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+		HEADERS.header = append(HEADERS.header, head1)
+		HEADERS.header = append(HEADERS.header, head2)
+		res := &Response{
+			statusline: resStatusLine.to_string(),
+			headers:    HEADERS.to_string(),
+			body:       string(content),
+		}
+		con.Write([]byte(res.statusline + res.headers + res.body))
+		return
 	} else {
 		con.Write([]byte(NOT_FOUND))
-
-		con.Close()
+		return
 	}
 	// if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) ||
 	// 	strings.Trim(parsedPath[0], "") == "echo" {
@@ -194,7 +222,7 @@ func main() {
 	fmt.Println("Logs from your program will appear here!")
 	// var wg sync.WaitGroup
 	// Uncomment this block to pass the first stage
-
+	flag.StringVar(&Dir, "directory", "", "enter the dir")
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
