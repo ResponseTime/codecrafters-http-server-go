@@ -152,10 +152,27 @@ func handle(con net.Conn) {
 			con.Write([]byte(res.statusline + res.headers + res.body))
 			return
 		} else {
+
+			var ContentLen int
+			for _, i := range req[1:] {
+				if len(string(i)) == 0 {
+					break
+				}
+				splits := strings.Split(string(i), ":")
+				if strings.Trim(splits[0], " ") == "Content-Length" {
+					ContentLen, _ = strconv.Atoi(strings.Trim(splits[1], " "))
+					break
+				}
+			}
+
 			content := req[len(req)-1]
+			data := make([]byte, ContentLen)
+			reader := bytes.NewReader(content)
+			reader.Read(data)
+			fmt.Println(string(data), len(string(data)), data, byte(0))
 			path := strings.TrimPrefix(line.Path, "/files")
-			os.WriteFile(path, content, 0677)
-			con.Write([]byte("HTTP/1.1 201 OK\r\n"))
+			os.WriteFile(filepath.Join(Dir, path), content, 0677)
+			con.Write([]byte("HTTP/1.1 201 CREATED" + CLRF + CLRF))
 		}
 	} else {
 		con.Write([]byte(NOT_FOUND))
