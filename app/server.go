@@ -152,9 +152,10 @@ func handle(con net.Conn) {
 			con.Write([]byte(res.statusline + res.headers + res.body))
 			return
 		} else {
-			for _, i := range req[1:] {
-				fmt.Println(string(i))
-			}
+			content := req[len(req)-1]
+			path := strings.TrimPrefix(line.Path, "/files")
+			os.WriteFile(path, content, 0677)
+			con.Write([]byte("HTTP/1.1 201 OK\r\n"))
 		}
 	} else {
 		con.Write([]byte(NOT_FOUND))
