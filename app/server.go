@@ -171,7 +171,7 @@ func handle(con net.Conn) {
 			reader.Read(data)
 			fmt.Println(string(data), len(string(data)), data, byte(0))
 			path := strings.TrimPrefix(line.Path, "/files")
-			os.WriteFile(filepath.Join(Dir, path), content, 0677)
+			os.WriteFile(filepath.Join(Dir, path), data, 0677)
 			con.Write([]byte("HTTP/1.1 201 CREATED" + CLRF + CLRF))
 		}
 	} else {
