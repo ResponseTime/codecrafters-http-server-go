@@ -223,6 +223,7 @@ func main() {
 	// var wg sync.WaitGroup
 	// Uncomment this block to pass the first stage
 	flag.StringVar(&Dir, "directory", "", "enter the dir")
+	flag.Parse()
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
