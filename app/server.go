@@ -54,10 +54,6 @@ func (h *Headers) to_string() string {
 	return res
 }
 
-func (h *Header) to_string() string {
-	return fmt.Sprintf("%s: %s"+CLRF, h.Key, h.val)
-}
-
 func (r *ResponseStatusLine) to_string() string {
 	return fmt.Sprintf("%s %s %s"+CLRF, r.Version, r.Status, r.Ok)
 }
@@ -77,7 +73,6 @@ func handle(con net.Conn) {
 	req := bytes.Split(buffer, []byte(CLRF))
 	statusL := bytes.Split(req[0], []byte(" "))
 	line := extract_statusline(string(statusL[0]), string(statusL[1]), string(statusL[2]))
-	// fmt.Println(line.Path, line.Path == "/")
 	resStatusLine := ResponseStatusLine{Version: "HTTP/1.1", Status: "200", Ok: "OK"}
 	if strings.Trim(line.Path, " ") == "/" {
 		con.Write([]byte(OK))
@@ -132,96 +127,41 @@ func handle(con net.Conn) {
 		return
 
 	} else if strings.Contains(line.Path, "/files") {
-		filename := strings.Split(line.Path, "/")[2]
-		pathToFile := filepath.Join(Dir, filename)
-		_, err := os.Open(pathToFile)
-		if errors.Is(err, os.ErrNotExist) {
-			con.Write([]byte(NOT_FOUND))
-			return
-		}
+		if line.Method == "GET" {
+			filename := strings.Split(line.Path, "/")[2]
+			pathToFile := filepath.Join(Dir, filename)
+			_, err := os.Open(pathToFile)
+			if errors.Is(err, os.ErrNotExist) {
+				con.Write([]byte(NOT_FOUND))
+				return
+			}
 
-		HEADERS := &Headers{}
-		var head2 Header
-		head1 := Header{Key: "Content-Type", val: "application/octet-stream"}
-		content, _ := os.ReadFile(pathToFile)
-		lenActual := len(string(content))
-		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
-		HEADERS.header = append(HEADERS.header, head1)
-		HEADERS.header = append(HEADERS.header, head2)
-		res := &Response{
-			statusline: resStatusLine.to_string(),
-			headers:    HEADERS.to_string(),
-			body:       string(content),
+			HEADERS := &Headers{}
+			var head2 Header
+			head1 := Header{Key: "Content-Type", val: "application/octet-stream"}
+			content, _ := os.ReadFile(pathToFile)
+			lenActual := len(string(content))
+			head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
+			HEADERS.header = append(HEADERS.header, head1)
+			HEADERS.header = append(HEADERS.header, head2)
+			res := &Response{
+				statusline: resStatusLine.to_string(),
+				headers:    HEADERS.to_string(),
+				body:       string(content),
+			}
+			con.Write([]byte(res.statusline + res.headers + res.body))
+			return
+		} else {
+			fmt.Println(req)
 		}
-		con.Write([]byte(res.statusline + res.headers + res.body))
-		return
 	} else {
 		con.Write([]byte(NOT_FOUND))
 		return
 	}
-	// if bytes.Contains(req[0], []byte("/user-agent")) || bytes.Contains(req[0], []byte("/ ")) ||
-	// 	strings.Trim(parsedPath[0], "") == "echo" {
-	// 	// todo
-	// 	// fmt.Println(string(req[0]))
-	// 	resStatusLine.Status = "200"
-	// } else {
-	// 	resStatusLine.Status = "404"
-	// }
-	//
-	// HEADERS := &Headers{}
-	// // lenActual := strings.Join(parsedPathLen, "/")
-	//
-	// var head2 Header
-	// head1 := Header{Key: "Content-Type", val: "text/plain"}
-	// head2 = Header{Key: "Content-Length", val: strconv.Itoa(0)}
-	// var res *Response
-	//
-	// if resStatusLine.Status == "404" {
-	// 	HEADERS.header = append(HEADERS.header, head1)
-	// 	HEADERS.header = append(HEADERS.header, head2)
-	// 	res = &Response{
-	// 		statusline: resStatusLine.to_string(),
-	// 		headers:    HEADERS.to_string(),
-	// 		body:       "",
-	// 	}
-	// } else {
-	// 	var lenActual int
-	// 	if req[1] != nil {
-	// 		lenActual = len(strings.Trim(reqHeaders.header[1].val, " "))
-	// 	}
-	// 	// fmt.Println(lenActual)
-	// 	if strings.Trim(parsedPath[0], "") == "echo" {
-	// 		lenActual = len(strings.Join(parsedPathLen, "/"))
-	// 		head2 = Header{Key: "Content-Length", val: strconv.Itoa(lenActual)}
-	// 		HEADERS.header = append(HEADERS.header, head1)
-	// 		HEADERS.header = append(HEADERS.header, head2)
-	// 		res = &Response{
-	// 			statusline: resStatusLine.to_string(),
-	// 			headers:    HEADERS.to_string(),
-	// 			body:       strings.Join(parsedPathLen, "/"),
-	// 		}
-	// 		fmt.Println(strings.Join(parsedPathLen, "/"))
-	// 	} else {
-	// 		// fmt.Println(reqHeaders.header[1], len(reqHeaders.header[1].val))
-	// 		head2 = header{key: "content-length", val: strconv.itoa(lenactual)}
-	// 		headers.header = append(headers.header, head1)
-	// 		headers.header = append(headers.header, head2)
-	// 		res = &response{
-	// 			statusline: resstatusline.to_string(),
-	// 			headers:    headers.to_string(),
-	// 			body:       strings.trim(reqheaders.header[1].val, " "),
-	// 		}
-	// 	}
-	// }
-	// // fmt.Println(res.body, len(res.body))
-	// con.Write([]byte(res.statusline + res.headers + res.body))
 }
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
-	// var wg sync.WaitGroup
-	// Uncomment this block to pass the first stage
 	flag.StringVar(&Dir, "directory", "", "enter the dir")
 	flag.Parse()
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
