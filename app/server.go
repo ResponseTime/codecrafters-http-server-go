@@ -152,7 +152,9 @@ func handle(con net.Conn) {
 			con.Write([]byte(res.statusline + res.headers + res.body))
 			return
 		} else {
-			fmt.Println(req)
+			for _, i := range req[1:] {
+				fmt.Println(string(i))
+			}
 		}
 	} else {
 		con.Write([]byte(NOT_FOUND))
